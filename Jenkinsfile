@@ -1,7 +1,8 @@
 #!/usr/bin/groovy
 node{
   stage 'canary release'
-  git 'https://github.com/fabric8io/kansible.git'
+
+  checkout scm
 
   kubernetes.pod('buildpod').withImage('fabric8/go-builder').inside {
 
@@ -18,7 +19,9 @@ node{
 
     kubernetes.image().withName(imageName).build().fromPath(".")
     kubernetes.image().withName(imageName).tag().inRepository('docker.io/fabric8/'+imageName).force().withTag(tag)
-    kubernetes.image().withName('docker.io/fabric8/'+imageName).push().withTag(tag).toRegistry()
 
+    retry(3){
+      kubernetes.image().withName('docker.io/fabric8/'+imageName).push().withTag(tag).toRegistry()
+    }
   }
 }
